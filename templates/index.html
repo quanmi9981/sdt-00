@@ -1,186 +1,244 @@
-from flask import Flask, render_template, request
-import requests
-from collections import defaultdict
-from datetime import datetime, timedelta
-
-app = Flask(__name__)
-
-# ===== LINK 1 =====
-URL1 = "https://sdtvip1.xyz/gambler/user/child/statistic"
-USER1 = "ssdt10"
-
-# ===== LINK 2 =====
-URL2 = "https://sdtvip1.xyz/gambler/user/child/statistic"
-USER2 = "ssdt9"
-
-# ===== LINK 3 (THÊM MỚI) =====
-URL3 = "https://sdtvip1.xyz/gambler/user/child/statistic"
-USER3 = "ssdt8"
-
-
-def fetch_api(url, user, start_date, end_date, start_time, end_time):
-    try:
-        # ===== PARSE TIME =====
-        start_local = datetime.strptime(
-            f"{start_date} {start_time}",
-            "%Y-%m-%d %H:%M:%S"
-        )
-
-        end_local = datetime.strptime(
-            f"{end_date} {end_time}",
-            "%Y-%m-%d %H:%M:%S"
-        )
-
-        # ===== UTC =====
-        start_utc = start_local - timedelta(hours=7)
-        end_utc = end_local - timedelta(hours=7)
-
-        start_utc_str = start_utc.strftime(
-            "%Y-%m-%dT%H:%M:%S.000Z"
-        )
-
-        end_utc_str = end_utc.strftime(
-            "%Y-%m-%dT%H:%M:%S.999Z"
-        )
-
-        payload = {
-            "shopId": None,
-            "packageName": "",
-            "assigned": user,
-            "productId": "",
-            "action": "import_token",
-            "startDate": start_utc_str,
-            "endDate": end_utc_str
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thống Kê Ví</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #020617;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
+        
+        /* HỘP TỔNG VÍ TRÊN CÙNG */
+        .main-total-box {
+            border: 2px solid #38bdf8;
+            background: #0b1528;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .main-total-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #38bdf8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .main-total-money {
+            font-size: 48px;
+            font-weight: 900;
+            color: #38bdf8;
         }
 
-        domain = url.split("/")[2]
+        /* BỘ LỌC FORM */
+        form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        form input {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            background: #0f172a;
+            color: #fff;
+            font-size: 15px;
+        }
+        form button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        form button:hover { background: #16a34a; }
 
-        headers = {
-            "Accept": "application/json, text/plain, */*",
-            "Content-Type": "application/json",
-            "Origin": f"https://{domain}",
-            "Referer": f"https://{domain}/thong-ke-nap?user={user}",
-            "User-Agent": "Mozilla/5.0",
-            "X-Requested-With": "XMLHttpRequest"
+        /* TIÊU ĐỀ KHU VỰC VÍ */
+        .section-header {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ff4d67;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-header::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: #38bdf8;
         }
 
-        r = requests.post(
-            url,
-            json=payload,
-            headers=headers,
-            timeout=15
-        )
+        /* LƯỚI HIỂN THỊ VÍ */
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .box {
+            background: #07152d;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .title {
+            font-size: 20px;
+            font-weight: 800;
+            color: #f8fafc;
+            margin-bottom: 10px;
+        }
+        .money {
+            font-size: 32px;
+            font-weight: 900;
+            color: #00ff88;
+        }
+        .btn {
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .btn:hover { background: #334155; }
 
-        r.raise_for_status()
+        .detail {
+            display: none;
+            margin-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding-top: 10px;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
 
-        data = r.json().get("data", [])
+<div class="container">
 
-    except Exception as e:
-        print("API ERROR:", e)
-        data = []
+    <!-- HỘP TỔNG VÍ TRÊN CÙNG -->
+    <div class="main-total-box">
+        <div class="main-total-title">💼 TỔNG VÍ </div>
+        <div class="main-total-money">${{ "%.2f"|format(grand_total) }}</div>
+    </div>
 
-    result = defaultdict(lambda: {
-        "price": 0,
-        "count": 0
-    })
+    <!-- FORM FILTER -->
+    <form method="get">
+        <input type="date" name="start_date" value="{{ start_date }}">
+        <input id="start_time" name="start_time" value="{{ start_time }}">
+        <input type="date" name="end_date" value="{{ end_date }}">
+        <input id="end_time" name="end_time" value="{{ end_time }}">
+        <button type="submit">🔄 Làm mới</button>
+    </form>
 
-    total = 0
+    <!-- TIÊU ĐỀ KHU VỰC VÍ -->
+    <div class="section-header">KHU VỰC VÍ </div>
 
-    for item in data:
-        game = item.get("gameName", "Unknown")
+    <!-- DANH SÁCH CÁC VÍ BÊN DƯỚI -->
+    <div class="wallet-grid">
+        
+        <!-- VÍ 1 -->
+        <div class="box">
+            <div class="top">
+                <div>
+                    <div class="title">404. That’s an error</div>
+                    <button class="btn" onclick="toggleDetail('detail1')">📊 Chi tiết</button>
+                </div>
+                <div class="money">${{ "%.2f"|format(total) }}</div>
+            </div>
+            <div class="detail" id="detail1">
+                {% for game, d in result.items() %}
+                <div class="item">
+                    <div>{{ game }} (x{{ d.count }})</div>
+                    <div style="color: #ff4d67;">${{ "%.2f"|format(d.price) }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
 
-        try:
-            price = float(
-                item["price"]
-                .replace("$", "")
-                .replace(",", "")
-            )
-            count = int(item["count"])
-        except:
-            price = 0
-            count = 0
+        <!-- VÍ 2 -->
+        <div class="box">
+            <div class="top">
+                <div>
+                    <div class="title">Nam ôke</div>
+                    <button class="btn" onclick="toggleDetail('detail2')">📊 Chi tiết</button>
+                </div>
+                <div class="money">${{ "%.2f"|format(total2) }}</div>
+            </div>
+            <div class="detail" id="detail2">
+                {% for game, d in result2.items() %}
+                <div class="item">
+                    <div>{{ game }} (x{{ d.count }})</div>
+                    <div style="color: #ff4d67;">${{ "%.2f"|format(d.price) }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
 
-        money = price * count
+        <!-- VÍ 3 -->
+        <div class="box">
+            <div class="top">
+                <div>
+                    <div class="title">🐖 Grakk Mèo Thần Tài</div>
+                    <button class="btn" onclick="toggleDetail('detail3')">📊 Chi tiết</button>
+                </div>
+                <div class="money">${{ "%.2f"|format(total3) }}</div>
+            </div>
+            <div class="detail" id="detail3">
+                {% for game, d in result3.items() %}
+                <div class="item">
+                    <div>{{ game }} (x{{ d.count }})</div>
+                    <div style="color: #ff4d67;">${{ "%.2f"|format(d.price) }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
 
-        result[game]["price"] += money
-        result[game]["count"] += count
+    </div>
+</div>
 
-        total += money
+<script>
+    flatpickr("#start_time", { enableTime: true, noCalendar: true, dateFormat: "H:i:S", time_24hr: true });
+    flatpickr("#end_time", { enableTime: true, noCalendar: true, dateFormat: "H:i:S", time_24hr: true });
 
-    result = dict(
-        sorted(
-            result.items(),
-            key=lambda x: x[1]["price"],
-            reverse=True
-        )
-    )
-
-    return result, total
-
-
-@app.route("/")
-def index():
-    now = datetime.utcnow() + timedelta(hours=7)
-
-    start_date = request.args.get("start_date") or now.strftime("%Y-%m-%d")
-    end_date = request.args.get("end_date") or now.strftime("%Y-%m-%d")
-
-    start_time = request.args.get("start_time") or "00:00:00"
-    end_time = request.args.get("end_time") or "23:59:59"
-
-    # ===== API 1 =====
-    result1, total1 = fetch_api(
-        URL1,
-        USER1,
-        start_date,
-        end_date,
-        start_time,
-        end_time
-    )
-
-    # ===== API 2 =====
-    result2, total2 = fetch_api(
-        URL2,
-        USER2,
-        start_date,
-        end_date,
-        start_time,
-        end_time
-    )
-
-    # ===== API 3 =====
-    result3, total3 = fetch_api(
-        URL3,
-        USER3,
-        start_date,
-        end_date,
-        start_time,
-        end_time
-    )
-
-    # Tổng cộng của tất cả các ví để hiển thị lên hộp trên cùng
-    grand_total = total1 + total2 + total3
-
-    return render_template(
-        "index.html",
-
-        result=result1,
-        total=total1,
-
-        result2=result2,
-        total2=total2,
-
-        result3=result3,
-        total3=total3,
-
-        grand_total=grand_total,
-
-        start_date=start_date,
-        end_date=end_date,
-        start_time=start_time,
-        end_time=end_time
-    )
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    function toggleDetail(id) {
+        let box = document.getElementById(id);
+        box.style.display = (box.style.display === "block") ? "none" : "block";
+    }
+</script>
+</body>
+</html>

@@ -2,7 +2,6 @@ from flask import Flask, render_template, request
 import requests
 from collections import defaultdict
 from datetime import datetime, timedelta
-import re
 
 app = Flask(__name__)
 
@@ -14,7 +13,7 @@ USER1 = "ssdt10"
 URL2 = "https://sdtvip1.xyz/gambler/user/child/statistic"
 USER2 = "ssdt9"
 
-# ===== LINK 3 =====
+# ===== LINK 3 (THÊM MỚI) =====
 URL3 = "https://sdtvip1.xyz/gambler/user/child/statistic"
 USER3 = "ssdt8"
 
@@ -22,15 +21,27 @@ USER3 = "ssdt8"
 def fetch_api(url, user, start_date, end_date, start_time, end_time):
     try:
         # ===== PARSE TIME =====
-        start_local = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M:%S")
-        end_local = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M:%S")
+        start_local = datetime.strptime(
+            f"{start_date} {start_time}",
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        end_local = datetime.strptime(
+            f"{end_date} {end_time}",
+            "%Y-%m-%d %H:%M:%S"
+        )
 
         # ===== UTC =====
         start_utc = start_local - timedelta(hours=7)
         end_utc = end_local - timedelta(hours=7)
 
-        start_utc_str = start_utc.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-        end_utc_str = end_utc.strftime("%Y-%m-%dT%H:%M:%S.999Z")
+        start_utc_str = start_utc.strftime(
+            "%Y-%m-%dT%H:%M:%S.000Z"
+        )
+
+        end_utc_str = end_utc.strftime(
+            "%Y-%m-%dT%H:%M:%S.999Z"
+        )
 
         payload = {
             "shopId": None,
@@ -49,48 +60,61 @@ def fetch_api(url, user, start_date, end_date, start_time, end_time):
             "Content-Type": "application/json",
             "Origin": f"https://{domain}",
             "Referer": f"https://{domain}/thong-ke-nap?user={user}",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+            "User-Agent": "Mozilla/5.0",
             "X-Requested-With": "XMLHttpRequest"
         }
 
-        r = requests.post(url, json=payload, headers=headers, timeout=15)
+        r = requests.post(
+            url,
+            json=payload,
+            headers=headers,
+            timeout=15
+        )
+
         r.raise_for_status()
+
         data = r.json().get("data", [])
 
     except Exception as e:
         print("API ERROR:", e)
         data = []
 
-    result = defaultdict(lambda: {"price": 0, "count": 0})
+    result = defaultdict(lambda: {
+        "price": 0,
+        "count": 0
+    })
+
     total = 0
 
     for item in data:
         game = item.get("gameName", "Unknown")
 
         try:
-            # DÙNG BỘ LỌC CHUẨN: Xóa bỏ mọi ký tự lạ như $, chỉ giữ lại số, dấu chấm, dấu phẩy
-            raw_price = str(item.get("price", "0")).strip()
-            clean_str = re.sub(r'[^\d.,]', '', raw_price)
-            
-            # Xử lý chuẩn hóa định dạng số thập phân và hàng nghìn
-            if ',' in clean_str and '.' not in clean_str:
-                clean_str = clean_str.replace(',', '.')
-            elif ',' in clean_str and '.' in clean_str:
-                clean_str = clean_str.replace(',', '')
-                
-            price = float(clean_str)
-            count = int(item.get("count", 0))
-        except Exception as e:
-            print(f"Parse error on item: {item}, error: {e}")
+            price = float(
+                item["price"]
+                .replace("$", "")
+                .replace(",", "")
+            )
+            count = int(item["count"])
+        except:
             price = 0
             count = 0
 
         money = price * count
+
         result[game]["price"] += money
         result[game]["count"] += count
+
         total += money
 
-    result = dict(sorted(result.items(), key=lambda x: x[1]["price"], reverse=True))
+    result = dict(
+        sorted(
+            result.items(),
+            key=lambda x: x[1]["price"],
+            reverse=True
+        )
+    )
+
     return result, total
 
 
@@ -105,25 +129,55 @@ def index():
     end_time = request.args.get("end_time") or "23:59:59"
 
     # ===== API 1 =====
-    result1, total1 = fetch_api(URL1, USER1, start_date, end_date, start_time, end_time)
+    result1, total1 = fetch_api(
+        URL1,
+        USER1,
+        start_date,
+        end_date,
+        start_time,
+        end_time
+    )
 
     # ===== API 2 =====
-    result2, total2 = fetch_api(URL2, USER2, start_date, end_date, start_time, end_time)
+    result2, total2 = fetch_api(
+        URL2,
+        USER2,
+        start_date,
+        end_date,
+        start_time,
+        end_time
+    )
 
     # ===== API 3 =====
-    result3, total3 = fetch_api(URL3, USER3, start_date, end_date, start_time, end_time)
+    result3, total3 = fetch_api(
+        URL3,
+        USER3,
+        start_date,
+        end_date,
+        start_time,
+        end_time
+    )
 
-    # Tính tổng chuẩn chỉnh
     grand_total = total1 + total2 + total3
 
     return render_template(
         "index.html",
-        result=result1, total=total1,
-        result2=result2, total2=total2,
-        result3=result3, total3=total3,
+
+        result=result1,
+        total=total1,
+
+        result2=result2,
+        total2=total2,
+
+        result3=result3,
+        total3=total3,
+
         grand_total=grand_total,
-        start_date=start_date, end_date=end_date,
-        start_time=start_time, end_time=end_time
+
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time
     )
 
 

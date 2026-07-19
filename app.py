@@ -6,16 +6,16 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 
 # ===== LINK 1 =====
-URL1 = "https://boeingvip.xyz/gambler/user/child/statistic"
-USER1 = "hung3"
+URL1 = "https://sdtvip1.xyz/gambler/user/child/statistic"
+USER1 = "ssdt10"
 
 # ===== LINK 2 =====
-URL2 = "https://crossfirelegend.xyz/gambler/user/child/statistic"
-USER2 = "ht1"
+URL2 = "https://sdtvip1.xyz/gambler/user/child/statistic"
+USER2 = "ssdt9"
 
 # ===== LINK 3 (THÊM MỚI) =====
-URL3 = "https://crossfirelegend.xyz/gambler/user/child/statistic"
-USER3 = "ht2"
+URL3 = "https://sdtvip1.xyz/gambler/user/child/statistic"
+USER3 = "ssdt8"
 
 
 def fetch_api(url, user, start_date, end_date, start_time, end_time):
